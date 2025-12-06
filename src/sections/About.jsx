@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { motion, useInView } from "motion/react";
 import Card from "../components/Card";
 import { Globe } from "../components/globe";
-import { Frameworks } from "../components/frameWorks";
+import { Frameworks } from "../components/Frameworks";
 
 const About = () => {
   const grid2Container = useRef();

@@ -30,36 +30,62 @@ function checkCaseSensitive(dir) {
             const fileDir = dirname(fullPath);
             let resolvedBase = resolve(fileDir, importPath);
             
-            // Tenta extensões possíveis
-            const extensions = ['', '.js', '.jsx', '.ts', '.tsx'];
-            let foundPath = null;
+            // CHECAGEM CASE-SENSITIVE RIGOROSA (simula Linux)
+            const importDir = dirname(resolvedBase);
+            const importFileName = basename(importPath);
             
+            if (!existsSync(importDir)) {
+              errors.push({
+                file: fullPath.replace(dir + '\\', '').replace(/\\/g, '/'),
+                line: lineNum + 1,
+                importPath,
+                notFound: true
+              });
+              return;
+            }
+            
+            // Lista arquivos reais no diretório
+            const actualFiles = readdirSync(importDir);
+            const extensions = ['', '.js', '.jsx', '.ts', '.tsx'];
+            let foundMatch = null;
+            let caseMatch = null;
+            
+            // Procura arquivo com case exato
             for (const ext of extensions) {
-              const testPath = resolvedBase + ext;
-              if (existsSync(testPath)) {
-                foundPath = testPath;
+              const testName = importFileName + ext;
+              if (actualFiles.includes(testName)) {
+                caseMatch = testName;
                 break;
               }
             }
             
-            if (foundPath) {
-              const actualFileName = basename(foundPath);
-              const importFileName = basename(importPath);
-              const actualFileNameNoExt = actualFileName.replace(/\.(jsx?|tsx?)$/, '');
-              const importFileNameNoExt = importFileName.replace(/\.(jsx?|tsx?)$/, '');
-              
-              // CHECAGEM CASE-SENSITIVE (igual Linux/Netlify)
-              if (actualFileNameNoExt !== importFileNameNoExt) {
-                errors.push({
-                  file: fullPath.replace(dir + '\\', '').replace(/\\/g, '/'),
-                  line: lineNum + 1,
-                  importPath,
-                  expected: actualFileNameNoExt,
-                  got: importFileNameNoExt,
-                  fullPath: foundPath.replace(dir + '\\', '').replace(/\\/g, '/')
-                });
+            // Se não achou com case exato, procura case-insensitive
+            if (!caseMatch) {
+              const importLower = importFileName.toLowerCase();
+              for (const actualFile of actualFiles) {
+                const actualLower = actualFile.toLowerCase();
+                for (const ext of extensions) {
+                  if (actualLower === (importLower + ext).toLowerCase()) {
+                    foundMatch = actualFile;
+                    break;
+                  }
+                }
+                if (foundMatch) break;
               }
-            } else {
+            }
+            
+            if (!caseMatch && foundMatch) {
+              // Arquivo existe mas case está errado (erro no Linux!)
+              errors.push({
+                file: fullPath.replace(dir + '\\', '').replace(/\\/g, '/'),
+                line: lineNum + 1,
+                importPath,
+                expected: foundMatch.replace(/\.(jsx?|tsx?)$/, ''),
+                got: importFileName,
+                fullPath: join(importDir, foundMatch).replace(dir + '\\', '').replace(/\\/g, '/')
+              });
+            } else if (!caseMatch && !foundMatch) {
+              // Arquivo não existe
               errors.push({
                 file: fullPath.replace(dir + '\\', '').replace(/\\/g, '/'),
                 line: lineNum + 1,
