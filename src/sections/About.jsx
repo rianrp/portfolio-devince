@@ -2,7 +2,6 @@ import { useRef } from "react";
 import { motion, useInView } from "motion/react";
 import Card from "../components/Card";
 import { Globe } from "../components/globe";
-import CopyEmailButton from "../components/CopyEmailButton";
 import { Frameworks } from "../components/FrameWorks";
 
 const About = () => {
